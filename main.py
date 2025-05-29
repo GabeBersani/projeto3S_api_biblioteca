@@ -18,6 +18,7 @@ def main(page: ft.Page):
 
     livros = []
     usuarios = []
+    emprestimos = []
 
     # salvar livro
     def salvar_livro(e):
@@ -26,18 +27,16 @@ def main(page: ft.Page):
             msg_erro.open = True
             page.update()
         else:
-            livro = Livros(
-                titulo=titulo.value,
-                autor=autor.value,
-                ISBN=ISBN.value,
-                resumo=resumo.value,
-            )
-            livro.save()
-            titulo.value = ""
-            autor.value = ""
-            ISBN.value = ""
-            resumo.value = ""
-            msg_sucesso.open = True
+            resposta = post_livro(titulo.value,autor.value,ISBN.value,resumo.value)
+
+            if "erro" in resposta:
+                msg_erro.open = True
+            else:
+                titulo.value = ""
+                autor.value = ""
+                ISBN.value = ""
+                resumo.value = ""
+                msg_sucesso.open = True
             page.update()
 
     # salvar usuario
@@ -52,7 +51,6 @@ def main(page: ft.Page):
                 CPF=CPF.value,
                 endereco=endereco.value,
             )
-            usuario.save()
             nome.value = ""
             CPF.value = ""
             endereco.value = ""
@@ -75,7 +73,6 @@ def main(page: ft.Page):
                 id_usuario=id_usuario.value,
                 id_livro=id_livro.value,
             )
-            Emprestimos.save()
             data_emprestimo.value = ""
             data_devolucao.value = ""
             livro_emprestado.value = ""
@@ -90,8 +87,9 @@ def main(page: ft.Page):
 
     # lista de livros
     def exibir_lista_livros(e):
-        get_livros()
-        for l in livros:
+        print("aqui99999")
+        teste = get_livros()
+        for l in teste:
             lv_livro.controls.append(
                 ft.ListTile(
                     leading=ft.Icon(ft.Icons.BOOK),
@@ -194,7 +192,6 @@ def main(page: ft.Page):
 
 
         if page.route == "/cadastro_liv":
-            post_livro(titulo.value,autor.value,ISBN.value,resumo.value)
             page.views.append(
                 View(
                     "/cadastro_liv",
@@ -214,6 +211,7 @@ def main(page: ft.Page):
             page.update()
 
             if page.route == "/lista_liv":
+                print("tela de livros")
                 exibir_lista_livros(e)
                 page.views.append(
                     View(
@@ -224,7 +222,7 @@ def main(page: ft.Page):
                         ]
                     )
                 )
-                page.update()
+                # page.update()
 
             if page.route == "/listar_detalhes":
                 page.views.append(
@@ -316,7 +314,7 @@ def main(page: ft.Page):
                                 "/lista_emprestimo",
                                 [
                                     AppBar(title=Text("Lista de Emprestimos"), bgcolor=Colors.PINK),
-                                    lv_livro
+                                    emp_emprestimos
                                 ]
                             )
                         )
@@ -377,7 +375,7 @@ def main(page: ft.Page):
     )
 
     txt_empres = ft.Text(value="")
-    usu_usuarios = ft.ListView(
+    emp_emprestimos = ft.ListView(
         height=500,
         spacing=1,
         divider_thickness=1,

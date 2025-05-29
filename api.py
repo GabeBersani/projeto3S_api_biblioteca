@@ -10,6 +10,10 @@ app.config['SECRET_KEY'] = 'secret'
 # GET mostra a informação
 # PUT atualiza a informação
 
+# resgatar o token na aplicação web (api) e no app a cada requisto usar ele
+
+
+
 @app.route('/cadastro_livros', methods=['POST'])
 def cadastrar_livros_novos():
 
@@ -55,14 +59,14 @@ def cadastrar_livros_novos():
             'Autor': form_cadastro_livro.autor,
             'ISBN': form_cadastro_livro.ISBN,
             'Resumo': form_cadastro_livro.resumo
-        })
+        }),201
 
 
     except ValueError:
         # caso ocorra algum erro cai nessa mensagem
         return jsonify({
-            'erro':'cadastro inválido!'
-        })
+            'erro': 'cadastro inválido!'
+        }), 400
 
 
 @app.route('/cadastro_usuario', methods=['POST'])
@@ -517,4 +521,4 @@ def livro_status():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

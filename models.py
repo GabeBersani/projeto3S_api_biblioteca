@@ -45,7 +45,7 @@ class Livros(Base):
     __tablename__ = "Livro"
     # id unico do livro
     id_livro = Column(Integer, primary_key=True)
-    titulo = Column(String(40), nullable=False, index=True, unique=True)
+    titulo = Column(String(40), nullable=False, index=True)
     autor = Column(String(30), nullable=False, index=True)
     ISBN = Column(Integer, nullable=False, index=True)
     resumo = Column(String(200), nullable=False, index=True)
