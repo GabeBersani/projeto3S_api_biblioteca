@@ -144,7 +144,7 @@ def novo_emprestimo():
 
         emprestimo_novo = Emprestimos(data_emprestimo=dados["data_emprestimo"],
                                       data_devolucao=dados["data_devolucao"],
-                                      livro_emprestado=dados["livro"],
+                                      livro_emprestado=dados["livro_emprestado"],
                                       usuario_emprestado=dados["usuario_emprestado"],
                                       id_usuario=dados["id_usuario"],
                                       id_livro=dados["id_livro"])

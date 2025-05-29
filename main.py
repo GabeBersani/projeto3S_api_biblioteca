@@ -1,7 +1,7 @@
 from operator import truediv
 
 from oauthlib.uri_validate import authority
-
+from models import local_session, Usuarios, Livros, Emprestimos
 from funcoes import *
 import flet as ft
 from flet import AppBar, Text, View, ElevatedButton
@@ -16,9 +16,10 @@ def main(page: ft.Page):
     page.window.width = 375
     page.window.height = 667
 
-    # livros = []
+    livros = []
+    usuarios = []
 
-    # salvar usuario
+    # salvar livro
     def salvar_livro(e):
         if titulo.value == "" or autor.value == "" or ISBN.value == "" or resumo.value == "":
             page.overlay.append(msg_erro)
@@ -89,11 +90,7 @@ def main(page: ft.Page):
 
     # lista de livros
     def exibir_lista_livros(e):
-        lv_livro.controls.clear()
-
-        book = select(Livros)
-        livros = db_session.execute(book).scalars().all()
-
+        get_livros()
         for l in livros:
             lv_livro.controls.append(
                 ft.ListTile(
@@ -118,6 +115,63 @@ def main(page: ft.Page):
         txt.value = (f"Titulo: {titulo}; \nAutor: {autor}; \nISBN: {ISBN}; \nResumo: {resumo}.")
         page.go("/listar_detalhes")
 
+    def exibir_lista_usuario(e):
+        get_usuarios()
+        for u in usuarios:
+            usu_usuarios.controls.append(
+                ft.ListTile(
+                    leading=ft.Icon(ft.Icons.PERSON),
+                    title=ft.Text(u.nome),
+                    trailing=ft.PopupMenuButton(
+                        icon=ft.Icons.MORE_VERT,
+                        items=[
+                            ft.PopupMenuItem(
+                                text="Detalhes do usuario"
+                            ),
+                        ],
+                        on_select=lambda _, usu=u: ver_detalhes_usu(usu.nome, usu.CPF, usu.endereco),
+                    )
+
+                )
+            )
+        page.update()
+
+    def ver_detalhes_usu(nome, CPF, endereco):
+        txt_usu.value = (f"Nome: {nome}; \nCPF: {CPF}; \nEndereço: {endereco}.")
+        page.go("/listar_detalhes_usu")
+
+
+    def exibir_lista_emprestimo(e):
+        get_emprestimos()
+        for p in emprestimos:
+            emp_emprestimos.controls.append(
+                ft.ListTile(
+                    leading=ft.Icon(ft.Icons.BOOK),
+                    title=ft.Text(p.data_emprestimo),
+                    subtitle=ft.Text(p.data_devolucao),
+                    trailing=ft.PopupMenuButton(
+                        icon=ft.Icons.MORE_VERT,
+                        items=[
+                            ft.PopupMenuItem(
+                                text="Detalhes Emprestimo"
+                            ),
+                        ],
+                        on_select=lambda _, emp=p: ver_detalhes_empres(emp.data_emprestimo, emp.data_devolucao,
+                                                                       emp.livro_emprestado, emp.usuario_emprestado,
+                                                                       emp.id_usuario, emp.id_livro),
+                    )
+
+                )
+            )
+        page.update()
+
+    def ver_detalhes_empres(data_emprestimo, data_devolucao, livro_emprestado, usuario_emprestado, id_usuario, id_livro):
+        txt_empres.value = (f"Data de emprestimo: {data_emprestimo}; \nData de devolição: {data_devolucao}; \nLivro: "
+                            f"{livro_emprestado}; \nUsuario: {usuario_emprestado}; \nId usuario:{id_usuario}; "
+                            f"\nId livro:{id_livro}.")
+
+        page.go("/listar_detalhes_usu")
+
 
 
     def gerencia_rota(e):
@@ -128,18 +182,19 @@ def main(page: ft.Page):
                 [
                     AppBar(title=Text("Home"), bgcolor=Colors.PINK),
                     ElevatedButton(text="Cadastro de livro", on_click=lambda _: page.go("/cadastro_liv"), color=ft.CupertinoColors.SYSTEM_PINK, width=375),
-                    ElevatedButton(text="Cadastro de usuario", on_click=lambda _: page.go("/lista"), color=ft.CupertinoColors.SYSTEM_PINK, width=375),
-                    ElevatedButton(text="Emprestimo", on_click=lambda _: page.go("/lista"), color=ft.CupertinoColors.SYSTEM_PINK, width=375),
-                    ElevatedButton(text="Lista de livros", on_click=lambda _: page.go("/lista"), color=ft.CupertinoColors.SYSTEM_PINK, width=375),
-                    ElevatedButton(text="Lista de usuarios", on_click=lambda _: page.go("/lista"), color=ft.CupertinoColors.SYSTEM_PINK, width=375),
-                    ElevatedButton(text="Lista de emprestimos", on_click=lambda _: page.go("/lista"), color=ft.CupertinoColors.SYSTEM_PINK, width=375),
+                    ElevatedButton(text="Cadastro de usuario", on_click=lambda _: page.go("/cadastro_usu"), color=ft.CupertinoColors.SYSTEM_PINK, width=375),
+                    ElevatedButton(text="Emprestimo", on_click=lambda _: page.go("/emprestimo"), color=ft.CupertinoColors.SYSTEM_PINK, width=375),
+                    ElevatedButton(text="Lista de livros", on_click=lambda _: page.go("/lista_liv"), color=ft.CupertinoColors.SYSTEM_PINK, width=375),
+                    ElevatedButton(text="Lista de usuarios", on_click=lambda _: page.go("/lista_usu"), color=ft.CupertinoColors.SYSTEM_PINK, width=375),
+                    ElevatedButton(text="Lista de emprestimos", on_click=lambda _: page.go("/lista_emprestimo"), color=ft.CupertinoColors.SYSTEM_PINK, width=375),
                 ]
             )
         )
+        page.update()
 
 
         if page.route == "/cadastro_liv":
-            cadastro_liv(e)
+            post_livro(titulo.value,autor.value,ISBN.value,resumo.value)
             page.views.append(
                 View(
                     "/cadastro_liv",
@@ -151,23 +206,25 @@ def main(page: ft.Page):
                         resumo,
                         ElevatedButton(text="Salvar Livro", on_click=salvar_livro, color=ft.CupertinoColors.SYSTEM_PINK,
                                        width=375),
-                        ElevatedButton(text="Exibir Livros", on_click=lambda _: page.go("/lista_de_livros"),
+                        ElevatedButton(text="Exibir Livros", on_click=lambda _: page.go("/lista_liv"),
                                        color=ft.CupertinoColors.SYSTEM_PINK, width=375),
                     ]
                 )
             )
+            page.update()
 
-            if page.route == "/lista_de_livros":
-                exibir_lista(e)
+            if page.route == "/lista_liv":
+                exibir_lista_livros(e)
                 page.views.append(
                     View(
-                        "/lista",
+                        "/lista_liv",
                         [
                             AppBar(title=Text("Lista de Livros"), bgcolor=Colors.PINK),
-                            get_livros()
+                            lv_livro
                         ]
                     )
                 )
+                page.update()
 
             if page.route == "/listar_detalhes":
                 page.views.append(
@@ -181,6 +238,103 @@ def main(page: ft.Page):
                     )
                 )
             page.update()
+
+
+
+            if page.route == "/cadastro_usu":
+                post_usuarios(nome.value, CPF.value, endereco.value)
+                page.views.append(
+                    View(
+                        "/cadastro_usu",
+                        [
+                            AppBar(title=Text("Cadastro de Usuario"), bgcolor=Colors.PINK),
+                            nome,
+                            CPF,
+                            endereco,
+                            ElevatedButton(text="Salvar Usuario", on_click=salvar_usuario,
+                                           color=ft.CupertinoColors.SYSTEM_PINK,
+                                           width=375),
+                        ]
+                    )
+                )
+                page.update()
+
+                if page.route == "/lista_usu":
+                    exibir_lista_usuario(e)
+                    page.views.append(
+                        View(
+                            "/lista_usu",
+                            [
+                                AppBar(title=Text("Lista de Usuarios"), bgcolor=Colors.PINK),
+                                usu_usuarios
+                            ]
+                        )
+                    )
+                    page.update()
+
+                if page.route == "/listar_detalhes_usu":
+                    page.views.append(
+                        View(
+                            "/listar_detalhes_usu",
+                            [
+                                AppBar(title=Text("Lista de Usuarios"), bgcolor=Colors.PINK),
+                                txt_usu,
+                                ElevatedButton(text="Voltar", on_click=lambda _: page.go("/lista_usu"),
+                                               color=ft.CupertinoColors.SYSTEM_PINK, width=375)
+                            ]
+                        )
+                    )
+                page.update()
+
+                if page.route == "/emprestimo":
+                    post_emprestimos(data_emprestimo.value, data_devolucao.value, livro_emprestado.value, usuario_emprestado.value,
+                                     id_usuario.value, id_livro.value)
+                    page.views.append(
+                        View(
+                            "/emprestimo",
+                            [
+                                AppBar(title=Text("Emprestimos"), bgcolor=Colors.PINK),
+                                data_emprestimo,
+                                data_devolucao,
+                                livro_emprestado,
+                                usuario_emprestado,
+                                id_usuario,
+                                id_livro,
+                                ElevatedButton(text="Salvar emprestimo", on_click=salvar_emprestimo,
+                                               color=ft.CupertinoColors.SYSTEM_PINK,
+                                               width=375),
+                            ]
+                        )
+                    )
+                    page.update()
+
+
+                    if page.route == "/lista_emprestimo":
+                        exibir_lista_livros(e)
+                        page.views.append(
+                            View(
+                                "/lista_emprestimo",
+                                [
+                                    AppBar(title=Text("Lista de Emprestimos"), bgcolor=Colors.PINK),
+                                    lv_livro
+                                ]
+                            )
+                        )
+                        page.update()
+
+                    if page.route == "/listar_detalhes_emprestimo":
+                        page.views.append(
+                            View(
+                                "/listar_detalhes_emprestimo",
+                                [
+                                    AppBar(title=Text("Lista de emprestimos"), bgcolor=Colors.PINK),
+                                    txt_empres,
+                                    ElevatedButton(text="Voltar", on_click=lambda _: page.go("/lista_emprestimo"),
+                                                   color=ft.CupertinoColors.SYSTEM_PINK, width=375)
+                                ]
+                            )
+                        )
+                    page.update()
 
     def voltar(e):
         page.views.pop()
@@ -215,12 +369,27 @@ def main(page: ft.Page):
         divider_thickness=1,
     )
 
+    txt_usu = ft.Text(value="")
+    usu_usuarios = ft.ListView(
+        height=500,
+        spacing=1,
+        divider_thickness=1,
+    )
+
+    txt_empres = ft.Text(value="")
+    usu_usuarios = ft.ListView(
+        height=500,
+        spacing=1,
+        divider_thickness=1,
+    )
+
+
     msg_sucesso = ft.SnackBar(content=Text("Livro cadastrado!"), bgcolor=Colors.GREEN)
     msg_erro = ft.SnackBar(content=Text("Não deixe campos vazio!"), bgcolor=Colors.RED)
 
     page.overlay.append(msg_sucesso)
     page.overlay.append(msg_erro)
-    page.on_route_change = gerencia_rota()
+    page.on_route_change = gerencia_rota
     page.on_view_pop = voltar
 
     page.go(page.route)
